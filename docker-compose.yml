@@ -1,0 +1,50 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: springboot_db
+      MYSQL_USER: springuser
+      MYSQL_PASSWORD: springpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d 
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=rootpassword || exit 1"]
+      interval: 10s
+      retries: 3
+
+  backend:
+    image: minhdv8/springboot-app-image:0df65a
+    container_name: backend
+    depends_on:
+      - mysql
+    ports:
+    - "8080:8080"
+    expose:
+      - "8080" # Expose backend to Nginx internally
+
+  frontend:
+    image: minhdv8/react-app-image:72b810
+    container_name: frontend
+    ports:
+    - "3000:3000"
+    expose:
+      - "3000" 
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf 
+    ports:
+      - "80:80" 
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  mysql_data:
